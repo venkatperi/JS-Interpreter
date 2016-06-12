@@ -1,2 +1,7 @@
-
-*.komodoproject
+logs/
+*.log
+node_modules/
+.idea/
+dist/
+.coveralls.yml
+coverage/
