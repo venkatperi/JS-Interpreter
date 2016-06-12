@@ -124,7 +124,7 @@ Interpreter::callScriptMethod = ( delegate, fn, args..., done ) ->
 
   # remove returns from callbacks
   [..., last] = fn.node.body.body
-  if last.type == "ReturnStatement"
+  if last?.type == "ReturnStatement"
     last.type = "ExpressionStatement"
     last.expression = last.argument
     delete last.argument
