@@ -30,7 +30,7 @@ class DefaultDelegate
   getMethod : ( name ) =>
     log.v "getMethod: #{name}"
     if @handler?[ name ]?
-      f = ( args... ) => @handler[ name ] args
+      f = ( args... ) => @handler[ name ] args...
     else if !@handler
       f = ( args... ) => @invokeMethod name, args
     return @interpreter.wrapNativeFn f if f
