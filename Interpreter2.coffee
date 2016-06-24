@@ -1,6 +1,8 @@
+async = require 'async'
 _ = require 'lodash'
 Interpreter = require './interpreter'
 DefaultDelegate = require './DefaultDelegate'
+ntimer = require 'ntimer'
 
 # convert a value to pseudo values (for use inside the sandbox)
 Interpreter::fromNative = ( value, noRecurse ) ->
@@ -63,20 +65,23 @@ Interpreter::setNativeFn = ( parent, name, fn, thisObj ) ->
   @setProperty parent, name, @wrapNativeFn fn, thisObj
 
 Interpreter::wrapNativeFn = ( fn, thisObj ) ->
-  thisIP = @
+  _this = @
   @createNativeFunction ( args... ) ->
     thisObj ?= @ if !@.NaN # don't convert window
-    thisIP.fromNative fn.apply thisObj, thisIP.convertArgsToNative args...
+    _this.fromNative fn.apply thisObj, _this.convertArgsToNative args...
 
 # fully wrap an asynchronous native function, see wrapNativeFn
-Interpreter::wrapNativeAsyncFn = ( parent, name, fn, thisObj ) ->
-  thisIP = @
-  @setProperty parent, name, @createAsyncFunction ( args..., callback ) ->
+Interpreter::setNativeAsyncFn = ( parent, name, fn, thisObj ) ->
+  @setProperty parent, name, @wrapNativeAsyncFn fn, thisObj
+
+# fully wrap an asynchronous native function, see wrapNativeFn
+Interpreter::wrapNativeAsyncFn = ( fn, thisObj ) ->
+  _this = @
+  @createAsyncFunction ( args..., callback ) ->
     thisObj ?= @ if !@.NaN # don't convert window
-    nativeArgs = thisIP.convertArgsToNative args...
-    nativeArgs.unshift ( result ) -> callback thisIP.fromNative(result), true
+    nativeArgs = _this.convertArgsToNative args...
+    nativeArgs.unshift ( result ) -> callback _this.fromNative(result), true
     fn.apply thisObj, nativeArgs
-  return
 
 # wrap a whole class, see wrapNativeFn (doesn't work with async functions)
 # scope: the scope for the class to be added to
@@ -138,4 +143,16 @@ Interpreter::callScriptMethod = ( delegate, fn, args..., done ) ->
   ip.stateStack.unshift funcState
   ip.run done
 
+Interpreter::asyncRun = ( done ) ->
+  _this = @
+  #async.whilst (-> !_this.paused_ and _.this.step()), (->),
+  #  ( err, res ) -> done()
+  step = ->
+    setImmediate ->
+      unless _this.paused_
+        return step() if _this.step()
+      done()
+  step()
+
 module.exports = Interpreter
+

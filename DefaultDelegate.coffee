@@ -1,8 +1,9 @@
 _ = require 'lodash'
 rek = require 'rekuire'
 log = rek('logger')(require('path').basename(__filename).split('.')[ 0 ])
+{EventEmitter} = require 'events'
 
-class DefaultDelegate
+class DefaultDelegate extends EventEmitter
   constructor : ( @interpreter, @handler ) ->
 
   hasProperty : ( name ) =>
@@ -29,12 +30,17 @@ class DefaultDelegate
 
   getMethod : ( name ) =>
     log.v "getMethod: #{name}"
-    if @handler?[ name ]?
-      f = ( args... ) => @handler[ name ] args...
+    if typeof @handler?[ name ] is 'function'
+      f = ( args... ) => 
+        @handler[ name ] args...
+        undefined
+    else if @handler?.getMethod?
+      f = ( args... ) => 
+        @handler.getMethod(name) args...
+        undefined
     else if !@handler
       f = ( args... ) => @invokeMethod name, args
     return @interpreter.wrapNativeFn f if f
-    #@interpreter.UNDEFINED
 
   setProperty : ( name, value ) =>
     if @handler?.setProperty?
